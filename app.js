@@ -1,8 +1,8 @@
 /* global L */
 
 /** ~400 Duboce Ave / Duboce Triangle (WGS84) */
-const DUBOCE = [37.76958, -122.43335];
-const DEFAULT_ZOOM = 15;
+const DUBOCE = [37.76971, -122.42934];
+const DEFAULT_ZOOM = 16;
 
 /** Accent for list strip + arrow glyphs (no visible street lines on map). */
 const LINE_COLOR = "#ff6b35";
