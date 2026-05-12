@@ -4,8 +4,12 @@
 const DUBOCE = [37.76958, -122.43335];
 const DEFAULT_ZOOM = 15;
 
-/** All cleaning segments use one map color */
+/** Accent for list strip + arrow glyphs (no visible street lines on map). */
 const LINE_COLOR = "#ff6b35";
+
+/** Arrows along each line: spacing (m) and cap for performance on long blocks */
+const ARROW_SPACING_M = 85;
+const MAX_ARROWS_PER_LINE = 5;
 
 const DAYS = [
   { key: "sun", label: "Sunday" },
@@ -25,6 +29,154 @@ function $(id) {
   const el = document.getElementById(id);
   if (!el) throw new Error(`Missing #${id}`);
   return el;
+}
+
+function bearingDeg(lat1, lon1, lat2, lon2) {
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x =
+    Math.cos(φ1) * Math.sin(φ2) -
+    Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+}
+
+/**
+ * Bearing along Market toward downtown (~NE). Used so south-blockface
+ * segments point ~NE and north-blockface ~SW, instead of raw GIS direction.
+ */
+const MARKET_TOWARD_DOWNTOWN_DEG = 54;
+
+function angularDiffDeg(a, b) {
+  let d = (((a - b) % 360) + 360) % 360;
+  if (d > 180) d = 360 - d;
+  return d;
+}
+
+/** North vs south *face* from `blockside` (e.g. NorthEast vs SouthEast). */
+function blocksideNorthSouth(blockside) {
+  const s = String(blockside || "");
+  const hasNorth = /North/i.test(s);
+  const hasSouth = /South/i.test(s);
+  if (hasNorth && !hasSouth) return "north";
+  if (hasSouth && !hasNorth) return "south";
+  return "neutral";
+}
+
+/**
+ * 0 or 180 — added to local segment bearing. Market + block face → ~NE / ~SW;
+ * other streets: reverse for north-only block faces vs digitized line.
+ */
+function arrowFlipDeg(latlngs, corridor, blockside) {
+  if (latlngs.length < 2) return 0;
+  const bChord = bearingDeg(
+    latlngs[0].lat,
+    latlngs[0].lng,
+    latlngs[latlngs.length - 1].lat,
+    latlngs[latlngs.length - 1].lng,
+  );
+  const side = blocksideNorthSouth(blockside);
+  const onMarket = /market/i.test(String(corridor || ""));
+
+  if (onMarket && (side === "north" || side === "south")) {
+    const target =
+      side === "south"
+        ? MARKET_TOWARD_DOWNTOWN_DEG
+        : (MARKET_TOWARD_DOWNTOWN_DEG + 180) % 360;
+    const d0 = angularDiffDeg(bChord, target);
+    const d180 = angularDiffDeg((bChord + 180) % 360, target);
+    return d180 < d0 ? 180 : 0;
+  }
+  if (!onMarket && side === "north") return 180;
+  if (!onMarket && side === "south") return 0;
+  return 0;
+}
+
+/** Flatten nested LatLng arrays (e.g. some multi-part lines). */
+function flattenLatLngs(ll) {
+  if (!ll?.length) return [];
+  const first = ll[0];
+  if (first && typeof first.lat === "number") return ll;
+  return ll.flatMap(flattenLatLngs);
+}
+
+function polylineLengthM(latlngs) {
+  let d = 0;
+  for (let i = 1; i < latlngs.length; i += 1) {
+    d += latlngs[i - 1].distanceTo(latlngs[i]);
+  }
+  return d;
+}
+
+/**
+ * Point at distance `distM` from start along polyline + bearing of segment there.
+ */
+function pointAtDistance(latlngs, distM) {
+  const total = polylineLengthM(latlngs);
+  const target = Math.min(Math.max(0, distM), Math.max(total - 0.01, 0));
+  let accum = 0;
+  for (let i = 1; i < latlngs.length; i += 1) {
+    const a = latlngs[i - 1];
+    const b = latlngs[i];
+    const seg = a.distanceTo(b);
+    if (accum + seg >= target) {
+      const t = seg > 0 ? (target - accum) / seg : 0;
+      const lat = a.lat + t * (b.lat - a.lat);
+      const lng = a.lng + t * (b.lng - a.lng);
+      const brg = bearingDeg(a.lat, a.lng, b.lat, b.lng);
+      return { latlng: L.latLng(lat, lng), bearing: brg };
+    }
+    accum += seg;
+  }
+  const a = latlngs[latlngs.length - 2];
+  const b = latlngs[latlngs.length - 1];
+  return {
+    latlng: b,
+    bearing: bearingDeg(a.lat, a.lng, b.lat, b.lng),
+  };
+}
+
+function addDirectionArrows(polylineLayer, arrowGroup, feature) {
+  let latlngs = polylineLayer.getLatLngs();
+  latlngs = flattenLatLngs(latlngs);
+  if (latlngs.length < 2) return;
+
+  const total = polylineLengthM(latlngs);
+  if (total < 2) return;
+
+  const props = feature?.properties || {};
+  const flip =
+    arrowFlipDeg(latlngs, props.corridor, props.blockside) % 360;
+
+  const positions = [];
+  if (total <= ARROW_SPACING_M) {
+    positions.push(total * 0.5);
+  } else {
+    let d = ARROW_SPACING_M * 0.45;
+    while (d < total && positions.length < MAX_ARROWS_PER_LINE) {
+      positions.push(d);
+      d += ARROW_SPACING_M;
+    }
+    if (positions.length === 0) positions.push(total * 0.5);
+  }
+
+  for (const pos of positions) {
+    const { latlng, bearing: bLocal } = pointAtDistance(latlngs, pos);
+    const bearing = (bLocal + flip) % 360;
+    const icon = L.divIcon({
+      className: "leaflet-arrowhead",
+      html: `<div class="arrowhead-inner" style="transform:rotate(${bearing}deg)">▲</div>`,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
+    });
+    L.marker(latlng, {
+      icon,
+      interactive: false,
+      keyboard: false,
+      zIndexOffset: 450,
+    }).addTo(arrowGroup);
+  }
 }
 
 function formatHour(h) {
@@ -76,7 +228,8 @@ function buildPopupEl(feature) {
 
   const hint = document.createElement("div");
   hint.className = "p-hint";
-  hint.textContent = "No parking during posted sweep hours — verify signs.";
+  hint.textContent =
+    "Arrows use the line shape plus block face (north vs south) so Market runs ~NE / ~SW by curb; other streets flip for north-only faces. Verify signs.";
   root.appendChild(hint);
 
   return root;
@@ -90,16 +243,26 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
 }).addTo(map);
 
+const arrowLayer = L.layerGroup();
+
 const geoLayer = L.geoJSON(null, {
+  /** Invisible wide stroke so taps still open popups; only arrows are visible. */
   style: {
-    color: LINE_COLOR,
-    weight: 4,
-    opacity: 0.9,
+    color: "rgba(0,0,0,0)",
+    weight: 14,
+    opacity: 1,
+    lineCap: "round",
+    lineJoin: "round",
   },
   onEachFeature(feature, layer) {
     layer.bindPopup(buildPopupEl(feature), { maxWidth: 260 });
+    if (layer instanceof L.Polyline) {
+      addDirectionArrows(layer, arrowLayer, feature);
+    }
   },
 }).addTo(map);
+
+arrowLayer.addTo(map);
 
 const daySelect = $("day-select");
 const segmentList = $("segment-list");
@@ -167,6 +330,7 @@ function renderList(features) {
 
 async function loadDay(key) {
   setStatus("Loading…", false);
+  arrowLayer.clearLayers();
   geoLayer.clearLayers();
   clearList();
   listCount.textContent = "";

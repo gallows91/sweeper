@@ -141,6 +141,26 @@ body {
   font-family: inherit;
 }
 
+/* Direction arrows along cleaning routes */
+.leaflet-arrowhead {
+  background: transparent !important;
+  border: none !important;
+}
+
+.arrowhead-inner {
+  width: 14px;
+  height: 14px;
+  margin: 0 auto;
+  font-size: 11px;
+  line-height: 14px;
+  text-align: center;
+  color: #ff6b35;
+  text-shadow:
+    0 0 2px #0f1419,
+    0 0 4px #0f1419;
+  transform-origin: center center;
+}
+
 .leaflet-popup-content-wrapper,
 .leaflet-popup-tip {
   background: #1c2430;

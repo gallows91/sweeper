@@ -32,7 +32,7 @@ Open `http://localhost:8080` (not `file://`).
 ## Map behavior
 
 - Pick a **weekday** → map and list show **all** segments that have street cleaning on that day of the week (from the city dataset).
-- One **orange** line per segment. Tap a line or list row for block, hours, and schedule text. **Holiday** rows are omitted when building `data/`.
+- **Arrows only** on the map (no drawn street lines). Invisible wide polylines stay under the route so you can still **tap** to open the popup. **▲** direction logic unchanged (Market NE/SW heuristic, etc.).
 
 ## Notes
 
