@@ -4,8 +4,10 @@
 const DUBOCE = [37.76971, -122.42934];
 const DEFAULT_ZOOM = 16;
 
-/** Accent for list strip + arrow glyphs (no visible street lines on map). */
-const LINE_COLOR = "#ff6b35";
+/** Single-weekday segments: arrows + list strip. */
+const ARROW_COLOR_DEFAULT = "#39ff14";
+/** Multi-day (`cleaning_days_abbr`): arrows + list strip + tooltip accent. */
+const ARROW_COLOR_MULTI = "#ff6b35";
 
 /** Arrows along each line: spacing (m) and cap for performance on long blocks */
 const ARROW_SPACING_M = 85;
@@ -137,6 +139,13 @@ function pointAtDistance(latlngs, distM) {
   };
 }
 
+/** e.g. MW, TuTh — only when source has 2+ weekdays (property omitted otherwise). */
+function multiDayAbbr(p) {
+  const x = String(p?.cleaning_days_abbr ?? p?.cleaningDaysAbbr ?? "").trim();
+  if (x.length < 2) return "";
+  return x;
+}
+
 function addDirectionArrows(polylineLayer, arrowGroup, feature) {
   let latlngs = polylineLayer.getLatLngs();
   latlngs = flattenLatLngs(latlngs);
@@ -148,6 +157,7 @@ function addDirectionArrows(polylineLayer, arrowGroup, feature) {
   const props = feature?.properties || {};
   const flip =
     arrowFlipDeg(latlngs, props.corridor, props.blockside) % 360;
+  const isMulti = Boolean(multiDayAbbr(props));
 
   const positions = [];
   if (total <= ARROW_SPACING_M) {
@@ -164,9 +174,12 @@ function addDirectionArrows(polylineLayer, arrowGroup, feature) {
   for (const pos of positions) {
     const { latlng, bearing: bLocal } = pointAtDistance(latlngs, pos);
     const bearing = (bLocal + flip) % 360;
+    const innerClass = isMulti
+      ? "arrowhead-inner arrowhead-multi"
+      : "arrowhead-inner";
     const icon = L.divIcon({
       className: "leaflet-arrowhead",
-      html: `<div class="arrowhead-inner" style="transform:rotate(${bearing}deg)">▲</div>`,
+      html: `<div class="${innerClass}" style="transform:rotate(${bearing}deg)">▲</div>`,
       iconSize: [16, 16],
       iconAnchor: [8, 8],
     });
@@ -185,6 +198,26 @@ function formatHour(h) {
   const ampm = n >= 12 ? "PM" : "AM";
   const hr = n % 12 === 0 ? 12 : n % 12;
   return `${hr} ${ampm}`;
+}
+
+function buildMultiDayTooltipText(p) {
+  const abbr = multiDayAbbr(p);
+  if (!abbr) return "";
+  const corridor = String(p.corridor ?? "").trim();
+  const limits = String(p.limits ?? "").trim();
+  const fullname = String(p.fullname ?? "").trim();
+  const fh = p.fromhour ?? "";
+  const th = p.tohour ?? "";
+  const time =
+    fh !== "" && th !== "" ? `${formatHour(fh)}–${formatHour(th)}` : "";
+  const lines = [
+    `Also cleaned on other weekdays: ${abbr}`,
+    corridor || null,
+    limits || null,
+    time || null,
+    fullname || null,
+  ].filter(Boolean);
+  return lines.join("\n");
 }
 
 function buildPopupEl(feature) {
@@ -226,6 +259,18 @@ function buildPopupEl(feature) {
     root.appendChild(row);
   }
 
+  const md = multiDayAbbr(p);
+  if (md) {
+    const lab = document.createElement("div");
+    lab.className = "p-label";
+    lab.textContent = "Other cleaning days";
+    root.appendChild(lab);
+    const row = document.createElement("div");
+    row.className = "p-row";
+    row.textContent = md;
+    root.appendChild(row);
+  }
+
   const hint = document.createElement("div");
   hint.className = "p-hint";
   hint.textContent =
@@ -256,6 +301,14 @@ const geoLayer = L.geoJSON(null, {
   },
   onEachFeature(feature, layer) {
     layer.bindPopup(buildPopupEl(feature), { maxWidth: 260 });
+    const p = feature.properties || {};
+    if (multiDayAbbr(p)) {
+      layer.bindTooltip(buildMultiDayTooltipText(p), {
+        className: "sweep-tooltip-multi",
+        sticky: true,
+        opacity: 0.95,
+      });
+    }
     if (layer instanceof L.Polyline) {
       addDirectionArrows(layer, arrowLayer, feature);
     }
@@ -300,8 +353,10 @@ function renderList(features) {
     const time =
       fh !== "" && th !== "" ? `${formatHour(fh)}–${formatHour(th)}` : "";
 
-    const li = document.createElement("li");
-    li.style.borderLeft = `4px solid ${LINE_COLOR}`;
+    const md = multiDayAbbr(p);
+    li.style.borderLeft = `4px solid ${
+      md ? ARROW_COLOR_MULTI : ARROW_COLOR_DEFAULT
+    }`;
 
     const title = document.createElement("div");
     title.className = "seg-title";

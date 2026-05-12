@@ -15,7 +15,7 @@
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
       crossorigin=""
     />
-    <link rel="stylesheet" href="styles.css?v=6" />
+    <link rel="stylesheet" href="styles.css?v=7" />
   </head>
   <body>
     <div class="app">
@@ -25,9 +25,12 @@
       </div>
       <p class="disclaimer">
         <strong>▲</strong> arrows show where cleaning runs on the day you pick
-        (defaults to today). Tap near a street or use the list for details. On
-        <strong>Market St</strong>, arrows align ~NE / ~SW from block face where
-        the data allows. Verify signs.
+        (defaults to today). <strong>Green</strong> arrows are only for that
+        day in the dataset; <strong>orange</strong> means other weekdays too
+        (hover the line for a short summary; tap for the full popup). Tap near
+        a street or use the list for details. On <strong>Market St</strong>,
+        arrows align ~NE / ~SW from block face where the data allows. Verify
+        signs.
       </p>
       <div id="status" class="status" role="status"></div>
       <div class="map-wrap">
@@ -43,6 +46,6 @@
       integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
       crossorigin=""
     ></script>
-    <script src="app.js?v=6"></script>
+    <script src="app.js?v=7"></script>
   </body>
 </html>

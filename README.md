@@ -12,6 +12,14 @@ python3 scripts/split_sweeping.py \
   --out data/
 ```
 
+The splitter adds **`cleaning_days_abbr`** (for example `TuTh`, `MW`) when the same segment — same **`corridor`**, **`limits`**, **`cnn`**, **`cnnrightleft`**, **`blockside`** — appears on **two or more weekdays** in the city export. The map uses that for orange arrows and multi-day tooltips.
+
+If you already have split `data/*.geojson` files without that property, re-annotate in place (no master file needed):
+
+```bash
+python3 scripts/split_sweeping.py --annotate-existing data/
+```
+
 Commit the generated `data/*.geojson` files for GitHub Pages. You do **not** need to commit the full ~22 MB source file.
 
 ## Local preview
