@@ -1,0 +1,197 @@
+:root {
+  --map-height: 50vh;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #0f1419;
+  color: #e7ecf1;
+}
+
+.app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+}
+
+.toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #161c24;
+  border-bottom: 1px solid #2a3441;
+}
+
+.toolbar label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8b98a5;
+}
+
+.toolbar select {
+  width: 100%;
+  font-size: 1.05rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #3d4a5c;
+  background: #1c2430;
+  color: #e7ecf1;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.map-wrap {
+  flex: 0 0 auto;
+  width: 100%;
+  height: var(--map-height);
+  position: relative;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+  background: #1a222c;
+}
+
+.disclaimer {
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: #8b98a5;
+  padding: 0.5rem 1rem 0;
+}
+
+.list-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid #2a3441;
+  background: #121820;
+}
+
+.list-panel header {
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  color: #8b98a5;
+}
+
+#segment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0.75rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+#segment-list li {
+  padding: 0.65rem 1rem;
+  padding-left: 0.65rem;
+  border-bottom: 1px solid #232d3a;
+  border-left: 4px solid #868e96;
+  cursor: pointer;
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0.06);
+}
+
+#segment-list li:active {
+  background: #1c2632;
+}
+
+.seg-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #f0f4f8;
+}
+
+.seg-meta {
+  font-size: 0.8rem;
+  color: #9aa8b6;
+  margin-top: 0.2rem;
+}
+
+.status {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  color: #c9b040;
+}
+
+.status.error {
+  color: #e07070;
+}
+
+.leaflet-container {
+  font-family: inherit;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: #1c2430;
+  color: #e7ecf1;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.leaflet-popup-content {
+  margin: 0.65rem 0.85rem;
+  line-height: 1.4;
+  font-size: 0.88rem;
+}
+
+.popup-sweep {
+  min-width: 12rem;
+}
+
+.popup-sweep .p-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 0.35rem;
+  color: #f0f4f8;
+}
+
+.popup-sweep .p-row {
+  margin: 0.25rem 0;
+  color: #c5cdd6;
+}
+
+.popup-sweep .p-label {
+  color: #8b98a5;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-top: 0.45rem;
+}
+
+.popup-sweep .p-hint {
+  font-size: 0.72rem;
+  color: #6c7885;
+  margin-top: 0.5rem;
+  line-height: 1.3;
+}
+
+@media (min-width: 720px) {
+  :root {
+    --map-height: min(70vh, 560px);
+  }
+
+  .app {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+}
