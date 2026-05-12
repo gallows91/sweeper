@@ -23,6 +23,15 @@ python3 -m http.server 8080
 
 Open `http://localhost:8080` (not `file://`).
 
+### Safari not showing your latest edits
+
+Safari (especially on iPhone) **caches** `app.js` and `styles.css` aggressively. The IDE preview often bypasses that cache.
+
+1. **Bump the cache-buster** in [`index.html`](index.html): change `styles.css?v=6` and `app.js?v=6` to the same new number (e.g. `?v=7`) whenever you change those files, then reload.
+2. Or force-reload: **Mac Safari** — empty cache (**Develop → Empty Caches**, enable Develop menu in Safari Settings → Advanced). **iPhone** — close the tab, or Settings → Safari → **Clear History and Website Data** (heavy-handed), or add/remove a character in the URL.
+
+GitHub Pages also caches; bump `?v=` after each deploy if Safari serves old JS.
+
 ## GitHub Pages
 
 1. Push this repo to GitHub.
